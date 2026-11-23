@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>מראה חכמה – דמו</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{--bg:#0c0e13;--s1:#151821;--s2:#1d212c;--line:#2a2f3c;--tx:#eef0f4;--mut:#9aa1b1;--gold:#d4b37a;--ok:#3ddc84;--bad:#ff5d5d}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:Heebo,system-ui,sans-serif;direction:rtl}
+button{font-family:inherit}
+.app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+header.top{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(12,14,19,.92);backdrop-filter:blur(8px);z-index:5}
+.brand{font-weight:800;display:flex;align-items:center;gap:8px;font-size:17px}
+.gem{width:10px;height:10px;border-radius:3px;background:var(--gold);transform:rotate(45deg);box-shadow:0 0 12px var(--gold)}
+.tag{font-size:12px;color:var(--mut);border:1px solid var(--line);padding:3px 9px;border-radius:999px}
+.screen{display:none;padding:22px 18px 30px;flex:1}
+.screen.on{display:block;animation:fade .35s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+h1{font-size:30px;line-height:1.15;margin:6px 0 10px;font-weight:800}
+h2{font-size:22px;margin:4px 0 6px;font-weight:700}
+h3{font-size:15px;margin:22px 0 10px;color:var(--mut);font-weight:500}
+.lead{color:var(--mut);line-height:1.6;margin:0 0 18px}
+.btn{display:block;width:100%;padding:15px;border-radius:14px;border:0;background:var(--gold);color:#1b160c;font-weight:700;font-size:17px;cursor:pointer;margin-top:12px}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:transparent;color:var(--tx);border:1px solid var(--line)}
+.btn[disabled]{opacity:.45}
+.row{display:flex;gap:10px}.row>.btn{flex:1}
+.steps{display:grid;gap:10px;margin:18px 0}
+.step{display:flex;gap:14px;align-items:center;background:var(--s1);border:1px solid var(--line);border-radius:16px;padding:14px}
+.step b{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(212,179,122,.14);color:var(--gold);flex:none}
+.step span{color:var(--mut);font-size:14px;display:block}
+.hero{position:relative;height:240px;border-radius:22px;background:radial-gradient(ellipse at 50% 30%,#232838,#0f1117 70%);border:1px solid var(--line);overflow:hidden;display:grid;place-items:center}
+.hero svg{height:92%}
+.priv{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mut);margin-top:14px}
+.priv i{font-style:normal;color:var(--ok)}
+.seg{display:flex;background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:4px}
+.seg button{flex:1;border:0;background:none;color:var(--mut);padding:11px 6px;border-radius:10px;font-size:15px;cursor:pointer}
+.seg button.on{background:var(--s2);color:var(--tx);box-shadow:inset 0 0 0 1px var(--gold)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:10px 15px;border-radius:999px;border:1px solid var(--line);background:var(--s1);color:var(--tx);font-size:15px;cursor:pointer}
+.chip.on{border-color:var(--gold);background:rgba(212,179,122,.13);color:var(--gold)}
+.range{display:flex;align-items:center;gap:14px}
+.range output{font-weight:700;font-size:20px;min-width:72px}
+input[type=range]{flex:1;accent-color:var(--gold)}
+.hint{font-size:13px;color:var(--mut);margin-top:6px;line-height:1.5}
+.toggle{display:flex;gap:12px;align-items:flex-start;background:var(--s1);border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:12px;cursor:pointer}
+.sw{width:46px;height:28px;border-radius:999px;background:#333;position:relative;flex:none;transition:.2s}
+.sw:after{content:"";position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s}
+.toggle.on .sw{background:var(--ok)}.toggle.on .sw:after{right:21px}
+.toggle b{display:block;font-size:15px}.toggle span{font-size:13px;color:var(--mut)}
+
+/* scan */
+#s-scan{position:fixed;inset:0;background:#000;padding:0;z-index:20}
+#cam,#ov{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+#cam{opacity:.85}
+.mirror{transform:scaleX(-1)}
+#gframe{position:absolute;inset:92px 14px 104px;border:3px dashed var(--bad);border-radius:22px;transition:border-color .25s;pointer-events:none}
+#gframe.ok{border-color:var(--ok);border-style:solid;box-shadow:0 0 0 2000px rgba(61,220,132,.06) inset}
+#scanSvg{position:absolute;inset:92px 0 104px;width:100%;height:calc(100% - 196px);display:none}
+.sbar{position:absolute;top:0;left:0;right:0;padding:16px 20px 26px;text-align:center;background:linear-gradient(rgba(0,0,0,.85),rgba(0,0,0,0))}
+.sbar .t{font-size:26px;font-weight:800;transition:color .2s}
+.sbar .s{color:#c9ced8;font-size:15px;margin-top:4px;min-height:20px}
+.sfoot{position:absolute;bottom:0;left:0;right:0;padding:16px 20px 22px;background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.9))}
+.pb{height:6px;border-radius:9px;background:#333;overflow:hidden}
+.pb>div{height:100%;width:0;background:var(--gold);transition:width .15s linear}
+.sfoot .r{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:13px;color:#b5bac5;gap:10px}
+.skip{background:rgba(0,0,0,.4);border:1px solid #444;color:#ddd;border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;flex:none}
+#rotRing{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:150px;height:150px;display:none;pointer-events:none}
+#bigHint{position:absolute;left:0;right:0;top:46%;text-align:center;font-size:64px;font-weight:800;color:#fff;text-shadow:0 2px 20px #000;pointer-events:none}
+
+/* results */
+.mgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.mc{background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:12px 10px;text-align:center}
+.mc b{display:block;font-size:22px}.mc span{font-size:12px;color:var(--mut)}
+.sizes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sz{background:linear-gradient(160deg,rgba(212,179,122,.15),rgba(212,179,122,.03));border:1px solid rgba(212,179,122,.35);border-radius:14px;padding:14px}
+.sz span{font-size:13px;color:var(--mut);display:block}.sz b{font-size:24px;color:var(--gold)}
+.pill{display:inline-flex;gap:6px;align-items:center;background:rgba(61,220,132,.1);color:var(--ok);border-radius:999px;padding:6px 12px;font-size:13px;margin:14px 6px 0 0}
+.note{font-size:12.5px;color:var(--mut);background:var(--s1);border:1px dashed var(--line);border-radius:12px;padding:10px 12px;margin-top:12px;line-height:1.55}
+
+/* look */
+.stage{position:relative;height:58vh;max-height:540px;min-height:360px;border-radius:22px;background:radial-gradient(ellipse at 50% 25%,#262b3a,#0f1117 72%);border:1px solid var(--line);overflow:hidden;perspective:900px;touch-action:none}
+.stage img,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none}
+.figwrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform-origin:center}
+.figwrap svg{height:94%;overflow:visible}
+.spin svg{animation:spin 3.4s ease-in-out}
+@keyframes spin{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}
+.vbar{display:flex;gap:6px;margin:10px 0 4px}
+.vbar button{flex:1;padding:10px 4px;border-radius:12px;border:1px solid var(--line);background:var(--s1);color:var(--tx);font-size:13.5px;cursor:pointer}
+.vbar button.on{border-color:var(--gold);color:var(--gold)}
+.photoctl{display:none;align-items:center;gap:10px;font-size:13px;color:var(--mut);margin:6px 0}
+.items{display:grid;gap:10px;margin-top:14px}
+.item{display:flex;gap:12px;align-items:center;background:var(--s1);border:1px solid var(--line);border-radius:16px;padding:10px}
+.thumb{width:62px;height:72px;border-radius:12px;background:var(--s2);flex:none;display:grid;place-items:center}
+.thumb svg{width:100%;height:100%}
+.info{flex:1;min-width:0}
+.nm{font-weight:700;font-size:15px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.badge{font-size:11px;font-weight:500;color:var(--gold);border:1px solid rgba(212,179,122,.4);border-radius:999px;padding:1px 8px}
+.store{font-size:11px;font-weight:500;color:#fff;border-radius:6px;padding:1px 7px}
+.meta{font-size:12px;color:var(--mut);margin-top:3px}
+bdi{direction:ltr;unicode-bidi:isolate}
+.dots{display:flex;gap:6px;margin-top:7px}
+.dot{width:20px;height:20px;border-radius:50%;border:2px solid transparent;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}
+.dot.on{border-color:var(--gold)}
+.pr{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.pr b{font-size:16px}
+.mini{border:1px solid var(--line);background:none;color:var(--tx);border-radius:9px;padding:5px 9px;font-size:12px;cursor:pointer}
+.add{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.total{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:14px 4px;border-top:1px solid var(--line);font-size:18px}
+.total b{font-size:24px;color:var(--gold)}
+
+/* summary */
+.codebox{text-align:center;background:var(--s1);border:1px solid var(--line);border-radius:20px;padding:20px}
+.code{font-size:34px;font-weight:800;letter-spacing:.06em;direction:ltr}
+#qr{background:#fff;padding:10px;border-radius:14px;display:inline-block;margin:14px auto 6px}
+#qr img,#qr canvas{display:block}
+.sl{display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:1px solid var(--line);gap:10px}
+.sl span{color:var(--mut)}
+.grp{margin-top:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.field{display:flex;gap:8px;margin-top:8px}
+.field input{flex:1;background:var(--s1);border:1px solid var(--line);color:var(--tx);border-radius:12px;padding:13px;font-size:16px;direction:ltr;text-align:right}
+.field button{border:0;background:var(--s2);color:var(--tx);border-radius:12px;padding:0 16px;font-size:15px;cursor:pointer}
+.msg{font-size:13px;color:var(--ok);margin-top:8px;min-height:18px}
+.map{background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:10px;margin-top:14px}
+.map svg{width:100%;display:block}
+@keyframes dash{to{stroke-dashoffset:-40}}
+.route{animation:dash 1.2s linear infinite}
+
+/* seller */
+#s-seller{background:#f4f2ed;color:#1b1b1f}
+#s-seller .lead{color:#666}
+.pos{background:#fff;border-radius:18px;padding:16px;box-shadow:0 2px 14px rgba(0,0,0,.06);margin-top:12px}
+.poshead{display:flex;justify-content:space-between;align-items:center}
+.poshead .code{font-size:26px;color:#1b1b1f}
+.ptag{background:#1b1b1f;color:#fff;font-size:12px;border-radius:999px;padding:4px 10px}
+.prow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid #eee}
+.prow:last-child{border:0}
+.prow .thumb{width:46px;height:54px;background:#eee}
+.prow small{display:block;color:#777;font-size:12px}
+.stock{font-size:12px;border-radius:8px;padding:3px 8px;background:#e7f7ee;color:#1d7a46;text-align:center}
+.chk{width:26px;height:26px;border-radius:8px;border:2px solid #ccc;display:grid;place-items:center;cursor:pointer;font-size:14px;margin-top:6px}
+.chk.on{background:#1b1b1f;border-color:#1b1b1f;color:#fff}
+#s-seller .btn{background:#1b1b1f;color:#fff}
+#s-seller .btn.ghost{background:transparent;color:#1b1b1f;border:1px solid #ccc}
+.custsz{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.custsz span{background:#f1ede4;border-radius:8px;padding:5px 10px;font-size:13px}
+.stabs{display:flex;gap:6px;flex-wrap:wrap}
+.stabs button{border:1px solid #ccc;background:#fff;border-radius:999px;padding:7px 12px;font-size:13px;cursor:pointer}
+.stabs button.on{background:#1b1b1f;color:#fff;border-color:#1b1b1f}
+.done{text-align:center;padding-top:60px}
+.done .big{font-size:64px;color:var(--ok)}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top"><div class="brand"><span class="gem"></span>מראה חכמה</div><div class="tag" id="modeTag">דמו · חנות לדוגמה</div></header>
+
+<!-- WELCOME -->
+<section id="s-welcome" class="screen on">
+  <div class="hero"><svg id="heroFig" viewBox="0 0 200 440"></svg></div>
+  <h1>הלוק המושלם,<br>במידה המדויקת שלך</h1>
+  <p class="lead" id="welcomeLead"></p>
+  <h3 style="margin-top:4px">איפה העמדה עומדת?</h3>
+  <div class="seg" id="mseg"><button data-m="store" class="on">בתוך חנות</button><button data-m="mall">במרכז הקניון</button></div>
+  <div class="steps">
+    <div class="step"><b>1</b><div>בוחרים מה מחפשים<span>חולצה, מכנס, שמלה, לבוש ערב…</span></div></div>
+    <div class="step"><b>2</b><div>סריקה של חצי דקה<span>מתרחקים עד שהמסגרת מוריקה, ומסתובבים לאט</span></div></div>
+    <div class="step"><b>3</b><div>מקבלים לוק שלם<span id="step3"></span></div></div>
+  </div>
+  <button class="btn" onclick="go('prefs')">בואו נתחיל</button>
+  <div class="priv"><i>●</i> בלי הרשמה · הווידאו לא יוצא מהמכשיר</div>
+</section>
+
+<!-- PREFS -->
+<section id="s-prefs" class="screen">
+  <h2>ספר לנו קצת</h2>
+  <p class="lead">כדי שנציע רק את מה שבאת לחפש.</p>
+  <h3>למי הלוק?</h3>
+  <div class="seg" id="gseg"><button data-g="f" class="on">נשים</button><button data-g="m">גברים</button></div>
+  <h3>מה מחפשים היום? <small>(אפשר כמה)</small></h3>
+  <div class="chips" id="ichips"></div>
+  <h3>גובה</h3>
+  <div class="range"><output id="hout">165 ס״מ</output><input type="range" id="hin" min="145" max="205" value="165"></div>
+  <div class="hint">הגובה משמש לכיול – משם המצלמה מודדת את הפרופורציות.</div>
+  <button class="btn" onclick="go('prep')">המשך לסריקה</button>
+  <button class="btn ghost" onclick="go('welcome')">חזרה</button>
+</section>
+
+<!-- PREP -->
+<section id="s-prep" class="screen">
+  <h2>לפני הסריקה</h2>
+  <div class="steps">
+    <div class="step"><b>📱</b><div>הנח את הטלפון במקום יציב<span>בערך בגובה המותניים, על מדף או נשען על משהו</span></div></div>
+    <div class="step"><b>↔</b><div>התרחק 2–3 מטרים<span>המסך יגיד לך מתי המרחק נכון ויהפוך לירוק</span></div></div>
+    <div class="step"><b>💡</b><div>אור טוב ורקע פשוט<span>בגדים לא רחבים מדי מדייקים את המדידה</span></div></div>
+  </div>
+  <h3>איזו מצלמה?</h3>
+  <div class="seg" id="cseg"><button data-c="user" class="on">קדמית – אני מול המסך</button><button data-c="environment">אחורית – מישהו מצלם</button></div>
+  <div class="toggle on" id="voiceT" onclick="this.classList.toggle('on');S.voice=this.classList.contains('on')"><div class="sw"></div><div><b>הנחיות קוליות</b><span>מרחוק קשה לקרוא – הטלפון יגיד לך מה לעשות</span></div></div>
+  <button class="btn" id="startScan">התחל סריקה</button>
+  <div class="priv"><i>●</i> הזיהוי רץ על המכשיר שלך. שום וידאו לא נשלח לשרת.</div>
+</section>
+
+<!-- SCAN -->
+<section id="s-scan" class="screen">
+  <video id="cam" playsinline muted autoplay></video>
+  <canvas id="ov"></canvas>
+  <svg id="scanSvg" viewBox="0 0 200 440" preserveAspectRatio="xMidYMid meet">
+    <defs><clipPath id="bodyclip"></clipPath></defs>
+    <ellipse cx="100" cy="430" rx="62" ry="10" fill="rgba(212,179,122,.08)" stroke="#d4b37a" stroke-width="1.2" stroke-dasharray="4 4"/>
+    <g id="sil"><g id="silBody" fill="rgba(255,255,255,.05)" stroke="#ff5d5d" stroke-width="1.4"></g><g id="mesh" clip-path="url(#bodyclip)" opacity="0"></g><g id="dots" opacity="0"></g></g>
+    <line id="scanline" x1="10" x2="190" y1="0" y2="0" stroke="#d4b37a" stroke-width="1.5" opacity="0"/>
+  </svg>
+  <div id="gframe"></div>
+  <svg id="rotRing" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="rgba(0,0,0,.35)" stroke="#333" stroke-width="7"/><circle id="rotArc" cx="50" cy="50" r="44" fill="none" stroke="#d4b37a" stroke-width="7" stroke-linecap="round" stroke-dasharray="0 400" transform="rotate(-90 50 50)"/><text id="rotTxt" x="50" y="58" text-anchor="middle" fill="#fff" font-size="22" font-weight="800">0%</text></svg>
+  <div id="bigHint"></div>
+  <div class="sbar"><div class="t" id="ptitle">מפעיל מצלמה…</div><div class="s" id="psub"></div></div>
+  <div class="sfoot"><div class="pb"><div id="pbar"></div></div><div class="r"><span id="camnote"></span><button class="skip" id="skipBtn">דלג על השלב</button></div></div>
+</section>
+
+<!-- RESULTS -->
+<section id="s-results" class="screen">
+  <h2>הסריקה הושלמה</h2>
+  <p class="lead" id="resLead"></p>
+  <div class="mgrid" id="mgrid"></div>
+  <h3>המידות המומלצות שלך</h3>
+  <div class="sizes" id="sizes"></div>
+  <div><span class="pill">✓ הווידאו לא נשמר – רק מספרים</span><span class="pill" id="measPill"></span></div>
+  <div class="note" id="resNote"></div>
+  <button class="btn" onclick="buildLook();go('look')">הצג לי לוק</button>
+</section>
+
+<!-- LOOK -->
+<section id="s-look" class="screen">
+  <h2>הלוק שלך</h2>
+  <p class="lead" id="lookFor" style="margin-bottom:12px"></p>
+  <div class="stage" id="stage"><canvas id="pcv"></canvas><img id="photo" alt=""><div class="figwrap" id="figwrap"><svg id="fig" viewBox="0 0 200 440"></svg></div></div>
+  <div class="vbar">
+    <button id="bMe">אני</button>
+    <button id="bDoll" class="on">בובה</button>
+    <button id="bSpin">↻ 360°</button>
+    <button id="bUp">העלה תמונה</button>
+  </div>
+  <div class="photoctl" id="photoctl">גודל <input type="range" id="psize" min="40" max="200" value="100"> <span>גרור למיקום</span></div>
+  <input type="file" id="pfile" accept="image/*" hidden>
+  <div class="items" id="items"></div>
+  <div class="add" id="addbox"></div>
+  <div class="total"><span>סה״כ הלוק</span><b id="total"></b></div>
+  <div class="note">בגרסה המלאה, AI מלביש את הבגדים בצורה ריאליסטית. כאן הבגדים מונחים על הגוף לפי נקודות הכתפיים והקרסוליים שזוהו בסריקה.</div>
+  <div class="row"><button class="btn ghost" onclick="buildLook()">לוק אחר</button><button class="btn" onclick="toSummary()">לסיכום</button></div>
+</section>
+
+<!-- SUMMARY -->
+<section id="s-summary" class="screen">
+  <h2>הלוק מוכן</h2>
+  <p class="lead" id="sumLead"></p>
+  <div class="codebox"><div style="color:var(--mut);font-size:13px">קוד לוק</div><div class="code" id="code"></div><div id="qr"></div><div style="font-size:12px;color:var(--mut)" id="qrNote"></div></div>
+  <div id="mapBox"></div>
+  <div id="slist" style="margin-top:6px"></div>
+  <h3>לקבל את הלוק לנייד <small>(לא חובה)</small></h3>
+  <div class="field"><input type="tel" id="phone" placeholder="050-0000000" inputmode="tel"><button onclick="sendSms()">שלח</button></div>
+  <div class="msg" id="smsmsg"></div>
+  <div class="toggle" id="consent" onclick="this.classList.toggle('on')"><div class="sw"></div><div><b>לשמור את המידות לפעם הבאה?</b><span id="consentTxt"></span></div></div>
+  <button class="btn" onclick="toSeller()" id="sellerBtn">הצג למוכר</button>
+  <button class="btn ghost" onclick="go('look')">חזרה ללוק</button>
+  <button class="btn ghost" onclick="finishAll()">סיים ומחק נתונים</button>
+</section>
+
+<!-- SELLER -->
+<section id="s-seller" class="screen">
+  <h2 id="sellTitle">מסך מוכר</h2>
+  <p class="lead" id="sellLead"></p>
+  <div class="stabs" id="stabs"></div>
+  <div class="pos" id="pos"></div>
+  <button class="btn" id="fitBtn">הכן בתא מדידה</button>
+  <button class="btn ghost" onclick="go('summary')">חזרה למסך הלקוח</button>
+</section>
+
+<!-- DONE -->
+<section id="s-done" class="screen">
+  <div class="done"><div class="big">✓</div><h2>תודה ונתראה!</h2><p class="lead" id="doneMsg"></p><button class="btn" onclick="resetAll()">לקוח הבא</button></div>
+</section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+let seed=Date.now()%1e6;
+function rnd(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}
+function hash(s){let h=7;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;return h}
+function shade(hex,p){const n=parseInt(hex.slice(1),16),r=n>>16,g=n>>8&255,b=n&255,f=v=>Math.max(0,Math.min(255,Math.round(v+(p<0?v:255-v)*p/100)));return'#'+((1<<24)|(f(r)<<16)|(f(g)<<8)|f(b)).toString(16).slice(1)}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function go(id){$$('.screen').forEach(e=>e.classList.remove('on'));$('#s-'+id).classList.add('on');window.scrollTo(0,0)}
+
+/* ================= STORES & CATALOG (fictional) ================= */
+const STORES={
+ a:{n:'אטליה 7',c:'#a8834b',x:20,top:true},
+ b:{n:'נורת׳ליין',c:'#3f6e9e',x:130,top:true},
+ c:{n:'קו אורבני',c:'#6b6f7a',x:240,top:true},
+ d:{n:'סטודיו לבן',c:'#9a5b6b',x:20,top:false},
+ e:{n:'מרינו & קו',c:'#4e7a5a',x:130,top:false},
+ f:{n:'פורם',c:'#7a5aa0',x:240,top:false},
+};
+const C=[
+{id:'m1',st:'b',g:'m',slot:'top',shape:'tee',tags:['tee'],name:'טי־שירט כותנה פימה',sku:'3001001',price:129,colors:[['לבן','#f2f0ea','110'],['נייבי','#1f2a44','433'],['ירוק זית','#5b6142','303']]},
+{id:'m2',st:'a',g:'m',slot:'top',shape:'polo',tags:['tee','shirt'],name:'חולצת פולו פיקה',sku:'3001205',price:249,colors:[['נייבי','#1f2a44','433'],['תכלת','#9cc3e6','468'],['לבן','#f2f0ea','110']]},
+{id:'m3',st:'a',g:'m',slot:'top',shape:'shirt',tags:['shirt','evening'],name:'חולצה מכופתרת אוקספורד',sku:'3002110',price:299,colors:[['תכלת','#b9d3ee','468'],['לבן','#f4f4f2','110'],['ורוד עתיק','#e7c3c3','662']]},
+{id:'m4',st:'e',g:'m',slot:'top',shape:'shirt',tags:['shirt'],name:'חולצת פשתן',sku:'3002214',price:279,colors:[['בז׳','#d8c7a8','277'],['לבן','#f4f4f2','110']]},
+{id:'m5',st:'e',g:'m',slot:'outer',shape:'sweater',tags:['knit'],name:'סריג צמר מרינו',sku:'3004020',price:349,colors:[['אפור מלאנז׳','#8a8d93','093'],['בורדו','#6b2430','604'],['נייבי','#1f2a44','433']]},
+{id:'m6',st:'a',g:'m',slot:'outer',shape:'jacket',tags:['knit','evening'],name:'בלייזר כותנה',sku:'3006011',price:449,colors:[['נייבי','#1c2438','433'],['חאקי','#a08f6a','248']]},
+{id:'m7',st:'c',g:'m',slot:'bottom',shape:'pants',tags:['pants'],name:'ג׳ינס סלים',sku:'3003301',price:329,colors:[['כחול כהה','#2b3b5c','971'],['שחור','#1d1d20','005']]},
+{id:'m8',st:'b',g:'m',slot:'bottom',shape:'pants',tags:['pants','evening'],name:'מכנס צ׳ינו',sku:'3003120',price:279,colors:[['בז׳','#c8b48e','277'],['נייבי','#232c45','433'],['אפור','#6e7178','093']]},
+{id:'m9',st:'b',g:'m',slot:'bottom',shape:'shorts',tags:['pants'],name:'מכנס קצר צ׳ינו',sku:'3003510',price:189,colors:[['בז׳','#c8b48e','277'],['נייבי','#232c45','433']]},
+{id:'m10',st:'e',g:'m',slot:'acc',shape:'scarf',tags:['acc'],name:'צעיף כותנה',sku:'3007002',price:99,colors:[['בורדו','#7a2a35','604'],['אפור','#8a8d93','093']]},
+{id:'m11',st:'c',g:'m',slot:'top',shape:'tee',tags:['tee'],name:'טי־שירט אוברסייז',sku:'5101040',price:99,colors:[['שחור','#1d1d20','005'],['חול','#cdbb98','277']]},
+{id:'m12',st:'c',g:'m',slot:'top',shape:'shirt',tags:['shirt','evening'],name:'חולצה מכופתרת שחורה',sku:'5102200',price:259,colors:[['שחור','#1b1b1e','005'],['אפור פחם','#3a3d44','093']]},
+{id:'m13',st:'c',g:'m',slot:'bottom',shape:'pants',tags:['pants'],name:'ג׳ינס גזרה רגילה',sku:'5103301',price:249,colors:[['כחול בהיר','#6f8db5','962'],['כחול כהה','#2b3b5c','971']]},
+{id:'m14',st:'c',g:'m',slot:'outer',shape:'jacket',tags:['knit'],name:'ז׳קט ג׳ינס',sku:'5106010',price:379,colors:[['כחול','#4c6a96','962']]},
+{id:'m15',st:'b',g:'m',slot:'acc',shape:'scarf',tags:['acc','evening'],name:'צעיף צמר',sku:'6107002',price:119,colors:[['קאמל','#b08a5a','248'],['נייבי','#1f2a44','433']]},
+{id:'f1',st:'d',g:'f',slot:'top',shape:'tee',tags:['tee'],name:'טי־שירט בסיסית',sku:'4001001',price:119,colors:[['לבן','#f2f0ea','110'],['שחור','#1d1d20','005'],['ורוד','#e9b7bd','662']]},
+{id:'f2',st:'a',g:'f',slot:'top',shape:'shirt',tags:['shirt'],name:'חולצה מכופתרת פופלין',sku:'4002104',price:279,colors:[['לבן','#f4f4f2','110'],['תכלת','#b9d3ee','468']]},
+{id:'f3',st:'f',g:'f',slot:'top',shape:'blouse',tags:['evening','shirt'],name:'חולצת ערב סאטן',sku:'4002330',price:299,colors:[['שמפניה','#d9c29a','277'],['שחור','#1d1d20','005'],['אמרלד','#1f6b55','374']]},
+{id:'f4',st:'d',g:'f',slot:'dress',shape:'dress',tags:['dress'],name:'שמלת מידי כותנה',sku:'4005020',price:399,colors:[['כחול','#3a5a8c','436'],['טרקוטה','#b5653f','214']]},
+{id:'f5',st:'f',g:'f',slot:'dress',shape:'dress',tags:['dress','evening'],name:'שמלת ערב סאטן',sku:'4005210',price:449,colors:[['שחור','#18181b','005'],['בורדו','#6b2430','604'],['אמרלד','#1f6b55','374']]},
+{id:'f6',st:'e',g:'f',slot:'bottom',shape:'skirt',tags:['dress','evening'],name:'חצאית פליסה',sku:'4003410',price:249,colors:[['בז׳','#c8b48e','277'],['שחור','#1d1d20','005']]},
+{id:'f7',st:'c',g:'f',slot:'bottom',shape:'pants',tags:['pants'],name:'ג׳ינס גזרה ישרה',sku:'4003301',price:329,colors:[['כחול בהיר','#6f8db5','962'],['כחול כהה','#2b3b5c','971']]},
+{id:'f8',st:'a',g:'f',slot:'bottom',shape:'pants',tags:['pants','evening'],name:'מכנס מחויט',sku:'4003150',price:299,colors:[['שחור','#1d1d20','005'],['קאמל','#b08a5a','248']]},
+{id:'f9',st:'e',g:'f',slot:'outer',shape:'jacket',tags:['knit'],name:'קרדיגן צמר',sku:'4004012',price:329,colors:[['קרם','#e8dfcc','113'],['אפור','#8a8d93','093']]},
+{id:'f10',st:'f',g:'f',slot:'acc',shape:'scarf',tags:['acc','evening'],name:'צעיף משי',sku:'4007010',price:129,colors:[['זהב','#c9a96e','277'],['ורוד עתיק','#d8a5a5','662']]},
+{id:'f11',st:'c',g:'f',slot:'top',shape:'tee',tags:['tee'],name:'טי־שירט קרופ',sku:'5201030',price:89,colors:[['לבן','#f2f0ea','110'],['ירוק מנטה','#a8d5c2','374']]},
+{id:'f12',st:'d',g:'f',slot:'dress',shape:'dress',tags:['dress'],name:'שמלת קיץ פשתן',sku:'5205044',price:349,colors:[['לבן','#efece4','110'],['תכלת','#a9c7e3','468']]},
+{id:'f13',st:'d',g:'f',slot:'bottom',shape:'skirt',tags:['dress'],name:'חצאית מידי',sku:'5203410',price:219,colors:[['זית','#6b6e45','303'],['שחור','#1d1d20','005']]},
+{id:'f14',st:'f',g:'f',slot:'outer',shape:'jacket',tags:['knit','evening'],name:'בלייזר מחויט',sku:'5206011',price:429,colors:[['שחור','#1b1b1e','005'],['שמנת','#ece3cf','113']]},
+{id:'f15',st:'c',g:'f',slot:'bottom',shape:'pants',tags:['pants'],name:'ג׳ינס מום',sku:'5203350',price:299,colors:[['כחול בהיר','#7f9bc0','962']]},
+];
+const INT=[['tee','טי־שירט'],['shirt','חולצות מכופתרות'],['evening','לבוש ערב'],['pants','מכנסיים'],['dress','שמלות וחצאיות','f'],['knit','סריגים וג׳קטים'],['acc','צעיפים ואביזרים']];
+const S={mode:'store',gender:'f',interests:new Set(),height:165,facing:'user',voice:true,meas:null,measured:false,fitKey:'avg',look:[],view:'doll',snap:null,pt:{x:0,y:0,s:1},code:'',live:false};
+const catalog=()=>S.mode==='mall'?C:C.filter(i=>['a','e','f','b'].includes(i.st)&&!/^m1[1-5]$|^f1[1-5]$/.test(i.id));
+const storeName=it=>S.mode==='mall'?STORES[it.st].n:'חנות לדוגמה';
+
+/* ================= DRAWING ================= */
+const BODY=`<ellipse cx="100" cy="44" rx="21" ry="26"/><rect x="92" y="64" width="16" height="26" rx="6"/><path d="M62 92 Q100 82 138 92 L146 140 L140 206 L60 206 L54 140 Z"/><path d="M62 94 L47 150 L39 220 L51 223 L59 156 L68 120 Z"/><path d="M138 94 L153 150 L161 220 L149 223 L141 156 L132 120 Z"/><path d="M60 203 L140 203 L137 262 L129 424 L107 424 L101 252 L99 252 L93 424 L71 424 L63 262 Z"/><circle cx="45" cy="229" r="7"/><circle cx="155" cy="229" r="7"/><ellipse cx="82" cy="428" rx="13" ry="5"/><ellipse cx="118" cy="428" rx="13" ry="5"/>`;
+const DEFS_G=`<defs><linearGradient id="sheen" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".3"/><stop offset=".25" stop-color="#000" stop-opacity="0"/><stop offset=".55" stop-color="#fff" stop-opacity=".08"/><stop offset=".8" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".32"/></linearGradient><linearGradient id="skin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#454c5e"/><stop offset="1" stop-color="#252a36"/></linearGradient></defs>`;
+document.body.insertAdjacentHTML('afterbegin',`<svg width="0" height="0" style="position:absolute" aria-hidden="true">${DEFS_G}</svg>`);
+const LONG='M62 90 Q100 82 138 90 L156 150 L164 219 L148 223 L141 160 L140 128 L142 214 L58 214 L60 128 L59 160 L52 223 L36 219 L44 150 Z';
+const TEE='M62 90 Q100 82 138 90 L161 131 L145 140 L140 127 L142 213 L58 213 L60 127 L55 140 L39 131 Z';
+function G(shape,hex){
+  const st=shade(hex,-35),lt=shade(hex,22);
+  const P=d=>`<path d="${d}" fill="${hex}" stroke="${st}" stroke-width="1.1" stroke-linejoin="round"/><path d="${d}" fill="url(#sheen)"/>`;
+  const L=(d,w=1.1,c=st)=>`<path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+  const B=(y,x=100)=>`<circle cx="${x}" cy="${y}" r="1.8" fill="${lt}" stroke="${st}" stroke-width=".6"/>`;
+  const collar=`<path d="M88 85 L100 99 L112 85 L116 95 L100 106 L84 95 Z" fill="${lt}" stroke="${st}" stroke-width="1"/>`;
+  switch(shape){
+    case'tee':return P(TEE)+L('M87 87 Q100 100 113 87',2.2);
+    case'polo':return P(TEE)+collar+L('M100 104 L100 126')+B(112)+B(121);
+    case'shirt':return P(LONG)+collar+L('M100 106 L100 213')+[120,142,164,186,206].map(y=>B(y)).join('')+L('M38 211 L52 215',1.4)+L('M162 211 L148 215',1.4);
+    case'blouse':return P('M62 90 Q100 82 138 90 L156 150 L164 219 L148 223 L141 160 L140 128 L143 208 Q100 222 57 208 L60 128 L59 160 L52 223 L36 219 L44 150 Z')+L('M88 88 L100 116 L112 88',1.6)+L('M80 150 Q84 180 78 205',.7)+L('M122 150 Q118 180 124 205',.7);
+    case'sweater':return P(LONG)+L('M86 88 Q100 103 114 88',3,lt)+[64,74,84,94,104,114,124,134].map(x=>L(`M${x} 206 L${x} 213`,.8)).join('')+L('M37 212 L52 216',2,lt)+L('M163 212 L148 216',2,lt);
+    case'jacket':return P('M62 90 L44 150 L36 220 L53 224 L61 160 L60 128 Z')+P('M138 90 L156 150 L164 220 L147 224 L139 160 L140 128 Z')+P('M62 90 L95 95 L94 234 L55 234 L58 128 Z')+P('M138 90 L105 95 L106 234 L145 234 L142 128 Z')+`<path d="M95 95 L84 130 L94 150 Z" fill="${lt}" stroke="${st}" stroke-width=".9"/><path d="M105 95 L116 130 L106 150 Z" fill="${lt}" stroke="${st}" stroke-width=".9"/>`+B(170,92)+B(194,92)+L('M66 196 L84 196',1);
+    case'pants':return P('M58 199 L142 199 L140 262 L132 427 L106 427 L101 254 L99 254 L94 427 L68 427 L60 262 Z')+L('M58 207 L142 207',1.4)+L('M81 215 L82 420',.7)+L('M119 215 L118 420',.7)+L('M64 210 Q72 224 78 209',.9)+L('M136 210 Q128 224 122 209',.9);
+    case'shorts':return P('M58 199 L142 199 L144 300 L104 302 L100 256 L96 302 L56 300 Z')+L('M58 207 L142 207',1.4)+L('M57 292 L96 294',.8)+L('M143 292 L104 294',.8);
+    case'skirt':return P('M60 199 L140 199 L158 322 Q100 331 42 322 Z')+L('M60 207 L140 207',1.2)+L('M80 208 L70 325',.7)+L('M100 208 L100 329',.7)+L('M120 208 L130 325',.7);
+    case'dress':return P('M70 90 L82 88 Q100 106 118 88 L130 90 L140 130 L137 204 L162 336 Q100 347 38 336 L63 204 L60 130 Z')+L('M63 204 Q100 212 137 204',1.3)+L('M85 212 L74 338',.7)+L('M115 212 L126 338',.7);
+    case'scarf':return P('M78 80 Q100 99 122 80 L126 93 Q100 115 74 93 Z')+P('M106 99 L118 178 L104 181 L98 103 Z')+[106,110,114].map(x=>L(`M${x} 180 L${x+0.5} 187`,.9)).join('');
+  }return'';
+}
+const ORDER={bottom:0,dress:1,top:2,outer:3,acc:4};
+function figure(look,withBody=true){
+  const parts=[...look].sort((a,b)=>ORDER[a.item.slot]-ORDER[b.item.slot]).map(e=>G(e.item.shape,e.item.colors[e.ci][1])).join('');
+  return (withBody?`<g fill="url(#skin)">${BODY}</g>`:'')+parts;
+}
+const THUMB={top:'28 76 144 152',outer:'28 76 144 165',bottom:'40 192 120 240',dress:'30 80 140 270',acc:'66 72 68 118'};
+$('#heroFig').innerHTML=figure([{item:C.find(i=>i.id==='f8'),ci:0},{item:C.find(i=>i.id==='f3'),ci:0},{item:C.find(i=>i.id==='f10'),ci:0}]);
+
+/* ================= WELCOME / PREFS ================= */
+function applyMode(){
+  const mall=S.mode==='mall';
+  $('#modeTag').textContent=mall?'דמו · קניון לדוגמה':'דמו · חנות לדוגמה';
+  $('#welcomeLead').textContent=mall?'עמדה אחת במרכז הקניון שמכירה את הקטלוגים של כל החנויות – ומרכיבה לך לוק שלם מכמה חנויות, עם מידה, מחיר ומסלול הליכה.':'המראה סורקת את הגוף, מכירה את כל הקטלוג של החנות, ומרכיבה לך לוק שלם – עם מידה, מק״ט ומחיר.';
+  $('#step3').textContent=mall?'עם מפה לחנויות – והמידות מחכות בתא':'קוד לוק לטלפון – והמוכר מביא לתא';
+}
+$$('#mseg button').forEach(b=>b.onclick=()=>{$$('#mseg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.mode=b.dataset.m;applyMode()});
+applyMode();
+function renderChips(){
+  $('#ichips').innerHTML=INT.filter(i=>!i[2]||i[2]===S.gender).map(([k,l])=>`<button class="chip ${S.interests.has(k)?'on':''}" data-k="${k}">${l}</button>`).join('');
+  $$('#ichips .chip').forEach(b=>b.onclick=()=>{const k=b.dataset.k;S.interests.has(k)?S.interests.delete(k):S.interests.add(k);renderChips()});
+}
+$$('#gseg button').forEach(b=>b.onclick=()=>{$$('#gseg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.gender=b.dataset.g;if(S.gender==='m')S.interests.delete('dress');const h=S.gender==='m'?177:165;$('#hin').value=h;setH(h);renderChips()});
+function setH(v){S.height=+v;$('#hout').textContent=v+' ס״מ'}
+$('#hin').oninput=e=>setH(e.target.value);
+$$('#cseg button').forEach(b=>b.onclick=()=>{$$('#cseg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.facing=b.dataset.c});
+$('#startScan').onclick=()=>{primeVoice();startScan()};
+renderChips();
+
+/* ================= VOICE ================= */
+let heVoice=null,lastSaid='',lastSayT=0;
+function pickVoice(){try{heVoice=speechSynthesis.getVoices().find(v=>/^he|^iw/i.test(v.lang))||null}catch(e){}}
+try{speechSynthesis.onvoiceschanged=pickVoice;pickVoice()}catch(e){}
+function primeVoice(){try{const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u)}catch(e){}}
+function say(t,force){
+  if(!S.voice||!t)return;const now=performance.now();
+  if(!force&&t===lastSaid&&now-lastSayT<4000)return;
+  if(!force&&now-lastSayT<1600)return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='he-IL';if(heVoice)u.voice=heVoice;u.rate=1.02;speechSynthesis.speak(u);lastSaid=t;lastSayT=now}catch(e){}
+}
+
+/* ================= POSE (MediaPipe) ================= */
+const MP='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
+const MODEL='https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
+let landmarker=null,stream=null,raf=null;
+async function loadPose(){
+  if(landmarker)return landmarker;
+  const m=await import(MP+'/vision_bundle.mjs');
+  const fs=await m.FilesetResolver.forVisionTasks(MP+'/wasm');
+  const o=d=>({baseOptions:{modelAssetPath:MODEL,delegate:d},runningMode:'VIDEO',numPoses:1,minPoseDetectionConfidence:.5,minPosePresenceConfidence:.5,minTrackingConfidence:.5});
+  try{landmarker=await m.PoseLandmarker.createFromOptions(fs,o('GPU'))}catch(e){landmarker=await m.PoseLandmarker.createFromOptions(fs,o('CPU'))}
+  return landmarker;
+}
+function camOff(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('#cam').style.display='none';$('#ov').style.display='none'}
+const mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2,z:((a.z||0)+(b.z||0))/2});
+const d2=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const d3=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,(a.z||0)-(b.z||0));
+const vis=(lm,i)=>(lm[i].visibility??1);
+const median=a=>{const s=[...a].sort((x,y)=>x-y);return s[Math.floor(s.length/2)]};
+const SKEL=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28],[27,31],[28,32]];
+
+/* ---------- scan state ---------- */
+const PHASES=['find','dist','straight','up','down','rotate','process'];
+let sc={};
+function setUI(t,s,col){$('#ptitle').textContent=t;$('#psub').textContent=s||'';if(col)$('#ptitle').style.color=col}
+function phaseProgress(){const i=PHASES.indexOf(sc.phase);const base=[0,8,25,40,52,64,95][i];const extra=sc.phase==='rotate'?sc.rotP*31:0;$('#pbar').style.width=(base+extra)+'%'}
+function nextPhase(p){
+  sc.phase=p;sc.pt=performance.now();sc.hold=0;
+  $('#rotRing').style.display=p==='rotate'?'block':'none';$('#bigHint').textContent='';
+  const T={dist:['כוון מרחק','עמוד כך שכל הגוף בתוך המסגרת'],straight:['הסתכל ישר למראה','עמוד זקוף, ידיים מעט רחוקות מהגוף'],up:['הסתכל למעלה','הרם את הסנטר'],down:['עכשיו הסתכל למטה',''],rotate:['הסתובב לאט במקום','סיבוב מלא – עד שהעיגול יתמלא'],process:['בונה את מודל המידות…','']}[p];
+  if(T){setUI(T[0],T[1],'#fff');say(T[0],true)}
+  phaseProgress();
+}
+async function startScan(){
+  go('scan');
+  sc={phase:'find',pt:performance.now(),hold:0,samples:[],snap:null,r0:null,rs:[],w0:null,ws:[],rot:{stage:0,last:'front',stuck:performance.now()},rotP:0,lost:0,lastT:performance.now(),done:false};
+  $('#gframe').className='';$('#scanSvg').style.display='none';$('#pbar').style.width='0';$('#rotRing').style.display='none';$('#bigHint').textContent='';
+  setUI('מפעיל מצלמה…','אשר גישה למצלמה אם הדפדפן שואל','#fff');$('#camnote').textContent='';
+  $('#skipBtn').onclick=skipPhase;
+  try{
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('no camera api');
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:S.facing,width:{ideal:720},height:{ideal:1280}},audio:false});
+    const v=$('#cam');v.srcObject=stream;await v.play().catch(()=>{});
+    const mir=S.facing==='user';[v,$('#ov')].forEach(e=>{e.classList.toggle('mirror',mir);e.style.display='block'});
+    setUI('טוען זיהוי גוף…','בפעם הראשונה זה לוקח כמה שניות','#fff');
+    await loadPose();
+    S.live=true;$('#camnote').textContent='זיהוי גוף פעיל · הווידאו לא יוצא מהמכשיר';
+    setUI('עמוד מול המצלמה','התרחק כך שכל הגוף ייראה','#fff');say('עמוד מול המצלמה, והתרחק עד שכל הגוף ייראה',true);
+    liveLoop();
+  }catch(err){
+    console.warn(err);camOff();S.live=false;
+    $('#camnote').textContent=stream===null&&String(err).includes('Permission')?'לא אושרה גישה למצלמה – מצב הדגמה':'המצלמה או זיהוי הגוף לא זמינים כאן – מצב הדגמה';
+    startSim();
+  }
+}
+function skipPhase(){
+  if(!S.live){finishScan();return}
+  const i=PHASES.indexOf(sc.phase);
+  if(sc.phase==='find'||sc.phase==='dist'){nextPhase('straight');return}
+  if(sc.phase==='straight'){if(!sc.r0&&sc.rs.length)sc.r0=median(sc.rs);if(!sc.w0&&sc.ws.length)sc.w0=median(sc.ws);nextPhase('up');return}
+  if(i<PHASES.length-1)nextPhase(PHASES[i+1]);
+}
+function liveLoop(){
+  const v=$('#cam'),c=$('#ov'),ctx=c.getContext('2d');let lastTs=-1;
+  const f=()=>{
+    if(!S.live||!$('#s-scan').classList.contains('on'))return;
+    if(v.readyState>=2&&v.videoWidth){
+      if(c.width!==v.videoWidth){c.width=v.videoWidth;c.height=v.videoHeight}
+      let ts=performance.now();if(ts<=lastTs)ts=lastTs+1;lastTs=ts;
+      let res=null;try{res=landmarker.detectForVideo(v,ts)}catch(e){}
+      const lm=res&&res.landmarks&&res.landmarks[0],wl=res&&res.worldLandmarks&&res.worldLandmarks[0];
+      ctx.clearRect(0,0,c.width,c.height);
+      if(lm)drawSkel(ctx,lm,c.width,c.height);
+      try{step(lm,wl,v)}catch(e){console.warn(e)}
+      if(sc.done)return;
+    }
+    raf=requestAnimationFrame(f);
+  };f();
+}
+function drawSkel(ctx,lm,w,h){
+  const col=$('#gframe').classList.contains('ok')?'#3ddc84':'#ffd27a';
+  ctx.lineWidth=Math.max(3,w/180);ctx.strokeStyle=col;ctx.fillStyle=col;ctx.globalAlpha=.85;
+  for(const[a,b]of SKEL){if(vis(lm,a)<.4||vis(lm,b)<.4)continue;ctx.beginPath();ctx.moveTo(lm[a].x*w,lm[a].y*h);ctx.lineTo(lm[b].x*w,lm[b].y*h);ctx.stroke()}
+  for(const i of[0,11,12,13,14,15,16,23,24,25,26,27,28]){if(vis(lm,i)<.4)continue;ctx.beginPath();ctx.arc(lm[i].x*w,lm[i].y*h,Math.max(4,w/120),0,7);ctx.fill()}
+  ctx.globalAlpha=1;
+}
+function framing(lm){
+  const topY=Math.min(lm[0].y,lm[2].y,lm[5].y)-Math.abs(lm[0].y-lm[11].y)*0.55;
+  const feetVis=vis(lm,27)>.5&&vis(lm,28)>.5;
+  const bot=Math.max(lm[27].y,lm[28].y,lm[31].y,lm[32].y);
+  const h=bot-topY,cx=(lm[23].x+lm[24].x)/2;
+  if(!feetVis||bot>.975||topY<.015)return{ok:false,t:'התרחק אחורה',s:'הרגליים או הראש מחוץ למסגרת',big:'⇣'};
+  if(h<.55)return{ok:false,t:'התקרב קצת',s:'אתה רחוק מדי – צעד אחד קדימה',big:'⇡'};
+  if(cx<.3||cx>.7){
+    if(S.facing==='user'){const dispRight=cx<.3;return{ok:false,t:dispRight?'זוז מעט שמאלה':'זוז מעט ימינה',s:'כדי לעמוד במרכז המסגרת',big:dispRight?'←':'→'}}
+    return{ok:false,t:'עמוד במרכז המסגרת',s:'',big:'↔'};
+  }
+  return{ok:true,t:'מצוין – הישאר כך',s:'המרחק מושלם',big:''};
+}
+function headR(lm){const ear=mid(lm[7],lm[8]),sw=Math.abs(lm[11].x-lm[12].x)+1e-3;return(lm[0].y-ear.y)/sw}
+function shoulderQ(lm){const t=d2(mid(lm[11],lm[12]),mid(lm[23],lm[24]))||.2;return(lm[11].x-lm[12].x)/t}
+function step(lm,wl,v){
+  const now=performance.now(),dt=now-sc.lastT;sc.lastT=now;const el=now-sc.pt;
+  if(sc.phase==='find'){if(lm)nextPhase('dist');return}
+  if(sc.phase==='process'){if(el>1300){sc.done=true;finishScan()}return}
+  if(sc.phase==='rotate'){rotateStep(lm,now);return}
+  if(!lm){setUI('לא רואים אותך','עמוד מול המצלמה','#ffb3b3');$('#gframe').className='';sc.hold=0;return}
+  const fr=framing(lm);
+  if(sc.phase==='dist'){
+    $('#gframe').className=fr.ok?'ok':'';
+    setUI(fr.t,fr.s,fr.ok?'#3ddc84':'#ffb3b3');$('#bigHint').textContent=fr.ok?'':fr.big;
+    say(fr.t);
+    if(fr.ok){sc.hold+=dt;if(sc.hold>1300){say('מצוין',true);nextPhase('straight')}}else sc.hold=0;
+    return;
+  }
+  $('#gframe').className=fr.ok?'ok':'';
+  if(sc.phase==='straight'){
+    if(!fr.ok){setUI(fr.t,fr.s,'#ffb3b3');say(fr.t);return}
+    setUI('הסתכל ישר למראה','עמוד זקוף · מודד…','#fff');
+    sc.hold+=dt;sc.rs.push(headR(lm));sc.ws.push(shoulderQ(lm));
+    if(wl)sc.samples.push({sw:d3(wl[11],wl[12]),hw:d3(wl[23],wl[24]),leg:(d3(wl[23],wl[25])+d3(wl[25],wl[27])+d3(wl[24],wl[26])+d3(wl[26],wl[28]))/2,torso:d3(mid(wl[11],wl[12]),mid(wl[23],wl[24]))});
+    if(sc.hold>900&&!sc.snap)takeSnap(v,lm);
+    $('#pbar').style.width=(25+15*Math.min(1,sc.hold/2000))+'%';
+    if(sc.hold>2000){sc.r0=median(sc.rs);sc.w0=Math.abs(median(sc.ws))||.6;nextPhase('up')}
+    return;
+  }
+  if(sc.phase==='up'||sc.phase==='down'){
+    const r=headR(lm),d=r-(sc.r0??r);
+    const hit=sc.phase==='up'?d<-.07:d>.08;
+    $('#bigHint').textContent=sc.phase==='up'?'⇡':'⇣';
+    if(hit){sc.hold+=dt;setUI(sc.phase==='up'?'יופי, ככה':'יופי, ככה','','#3ddc84')}else{sc.hold=0;setUI(sc.phase==='up'?'הסתכל למעלה':'הסתכל למטה',sc.phase==='up'?'הרם את הסנטר':'הורד את הסנטר','#fff')}
+    if(sc.hold>450||el>6000)nextPhase(sc.phase==='up'?'down':'rotate');
+    return;
+  }
+}
+const ROT_SEQ=['side','back','side','front'];
+function rotateStep(lm,now){
+  const R=sc.rot,el=now-sc.pt;let st=null;
+  if(lm){
+    sc.lost=0;const q=shoulderQ(lm)/(sc.w0||.6),nv=vis(lm,0);
+    if(Math.abs(q)<.42)st='side';else if(q<-.42||nv<.45)st='back';else if(q>.55&&nv>.6)st='front';
+  }else{sc.lost+=16;if(sc.lost>500&&R.stage===1)st='back'}
+  if(st&&st===ROT_SEQ[R.stage]){R.stage++;R.stuck=now;if(R.stage===2)say('ממשיכים להסתובב')}
+  const target=R.stage/4;sc.rotP+=(target-sc.rotP)*.12;
+  const p=Math.round(sc.rotP*100);$('#rotTxt').textContent=p+'%';$('#rotArc').setAttribute('stroke-dasharray',`${2.765*p} 400`);
+  setUI('הסתובב לאט במקום',['המשך עד שתעמוד בצד','המשך – עכשיו הגב למצלמה','עוד רבע סיבוב','חזור עם הפנים למצלמה','הסיבוב הושלם'][R.stage],'#fff');
+  phaseProgress();
+  if(now-R.stuck>9000){say('המשך להסתובב לאט');R.stuck=now}
+  if(R.stage>=4&&sc.rotP>.97){say('מעולה, סיימנו',true);nextPhase('process')}
+  else if(el>40000){nextPhase('process')}
+}
+function takeSnap(v,lm){
+  const max=900,k=Math.min(1,max/v.videoHeight),w=Math.round(v.videoWidth*k),h=Math.round(v.videoHeight*k);
+  const cv=document.createElement('canvas');cv.width=w;cv.height=h;const x=cv.getContext('2d');
+  const mir=S.facing==='user';if(mir){x.translate(w,0);x.scale(-1,1)}
+  x.drawImage(v,0,0,w,h);
+  sc.snap={canvas:cv,w,h,lm:lm.map(p=>({x:mir?1-p.x:p.x,y:p.y}))};
+}
+
+/* ---------- simulated scan (fallback) ---------- */
+const LM2=[[100,44],[100,92],[66,96],[134,96],[48,150],[152,150],[45,226],[155,226],[72,205],[128,205],[80,318],[120,318],[82,422],[118,422]];
+const SK2=[[0,1],[1,2],[1,3],[2,4],[4,6],[3,5],[5,7],[2,8],[3,9],[8,9],[8,10],[10,12],[9,11],[11,13]];
+(function(){$('#silBody').innerHTML=BODY;$('#bodyclip').innerHTML=BODY;let m='';for(let y=20;y<440;y+=9)m+=`<line x1="30" x2="170" y1="${y}" y2="${y}" stroke="#d4b37a" stroke-width=".5"/>`;for(let x=40;x<170;x+=10)m+=`<line x1="${x}" x2="${x}" y1="10" y2="435" stroke="#d4b37a" stroke-width=".35"/>`;$('#mesh').innerHTML=m;$('#dots').innerHTML=SK2.map(([a,b])=>`<line x1="${LM2[a][0]}" y1="${LM2[a][1]}" x2="${LM2[b][0]}" y2="${LM2[b][1]}" stroke="#3ddc84" stroke-width="1" opacity=".7"/>`).join('')+LM2.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="3" fill="#3ddc84"/>`).join('')})();
+const SIM=[['עמוד על המשבצת המסומנת','במרכז, מול המראה',1800],['התרחק לאט אחורה','עד שהמסגרת תהפוך לירוקה',2600],['מצוין – המרחק מושלם','כל הגוף בתוך המסגרת',1300],['הסתכל ישר למראה','',1500],['הסתכל למעלה','',1200],['הסתכל למטה','',1200],['הסתובב לאט במקום','סיבוב מלא של 360°',5200],['בונה מודל תלת־ממד','',2000]];
+function startSim(){
+  $('#scanSvg').style.display='block';const t0=performance.now(),TOT=SIM.reduce((a,p)=>a+p[2],0);let said=-1;
+  const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+  const tick=now=>{
+    if(!$('#s-scan').classList.contains('on'))return;
+    let el=now-t0,i=0,acc=0;while(i<SIM.length&&el>acc+SIM[i][2]){acc+=SIM[i][2];i++}
+    if(i>=SIM.length){finishScan();return}
+    const p=(el-acc)/SIM[i][2];if(i!==said){said=i;say(SIM[i][0],true)}
+    let s=1,sx=1,ok=true,dots=0,mesh=0,scan=0;
+    if(i===0){s=1.32;ok=false}if(i===1){s=1.32-.32*ease(p);ok=p>.88}if(i>=3)dots=i===3?p:1;
+    if(i===6){const c=Math.cos(p*Math.PI*2);sx=Math.sign(c||1)*Math.max(.32,Math.abs(c));mesh=p*.6}
+    if(i===7){mesh=.7;scan=1;$('#scanline').setAttribute('y1',10+p*420);$('#scanline').setAttribute('y2',10+p*420)}
+    setUI(SIM[i][0],i===6?`סיבוב מלא של 360° · ${Math.round(p*100)}%`:SIM[i][1],ok?'#fff':'#ffb3b3');
+    $('#gframe').className=ok?'ok':'';$('#silBody').setAttribute('stroke',ok?'#3ddc84':'#ff5d5d');
+    $('#sil').setAttribute('transform',`translate(100 430) scale(${sx*s} ${s}) translate(-100 -430)`);
+    $('#dots').setAttribute('opacity',dots);$('#mesh').setAttribute('opacity',mesh);$('#scanline').setAttribute('opacity',scan);
+    $('#pbar').style.width=(el/TOT*100)+'%';
+    raf=requestAnimationFrame(tick);
+  };raf=requestAnimationFrame(tick);
+}
+
+/* ================= MEASUREMENTS ================= */
+function finishScan(){
+  cancelAnimationFrame(raf);S.live=false;camOff();try{speechSynthesis.cancel()}catch(e){}
+  S.snap=sc.snap||null;measure();renderResults();go('results');
+}
+function measure(){
+  const h=S.height,m=S.gender==='m',r=Math.round,j=()=>(rnd()-.5)*2;
+  let bs=1,bh=1,legF=1;S.measured=false;
+  if(sc.samples&&sc.samples.length>8){
+    const sw=median(sc.samples.map(s=>s.sw)),hw=median(sc.samples.map(s=>s.hw)),leg=median(sc.samples.map(s=>s.leg)),tor=median(sc.samples.map(s=>s.torso));
+    if(leg>0.3&&sw>0.15){
+      bs=clamp(Math.pow((sw/leg)/(m?.46:.44),.8),.9,1.12);
+      bh=clamp(Math.pow((hw/leg)/(m?.24:.26),.8),.9,1.12);
+      legF=clamp(Math.pow((leg/(leg+tor))/.64,.6),.95,1.05);
+      S.measured=true;
+    }
+  }
+  const b=(bs+bh)/2;S.fitKey=b<.96?'slim':b>1.05?'broad':'avg';
+  S.meas={height:h,chest:r(h*(m?.555:.53)*bs+j()),waist:r(h*(m?.465:.42)*b+j()),hips:r(h*(m?.56:.585)*bh+j()),shoulders:r(h*(m?.258:.235)*bs+j()/2),inseam:r(h*.455*legF+j()/2)};
+}
+function letter(){const c=S.meas.chest,t=S.gender==='m'?[[90,'S'],[98,'M'],[106,'L'],[114,'XL']]:[[82,'XS'],[88,'S'],[94,'M'],[100,'L']];for(const[v,l]of t)if(c<v)return l;return S.gender==='m'?'XXL':'XL'}
+function pantsM(){return{w:Math.round(S.meas.waist/2.54),l:clamp(Math.round(S.meas.inseam/2.54),28,36)}}
+function eu(){const h=S.meas.hips;for(const[v,s]of[[92,36],[97,38],[102,40],[107,42]])if(h<v)return s;return 44}
+function pantsLabel(){if(S.gender==='m'){const{w,l}=pantsM();return`W${w} L${l}`}return'EU '+eu()}
+function sizeFor(it){
+  if(it.slot==='acc')return{label:'מידה אחת',code:'OS'};
+  if(it.slot==='bottom'){if(S.gender==='m'){const{w,l}=pantsM();return it.shape==='shorts'?{label:'W'+w,code:''+w}:{label:`W${w} L${l}`,code:`${w}${l}`}}return{label:'EU '+eu(),code:''+eu()}}
+  return{label:letter(),code:letter()};
+}
+function fit(){return S.gender==='m'?{slim:'Slim Fit',avg:'Regular Fit',broad:'Regular / Relaxed'}[S.fitKey]:{slim:'גזרה צמודה',avg:'גזרה ישרה',broad:'גזרה נינוחה'}[S.fitKey]}
+function renderResults(){
+  const M=S.meas,c=[['גובה',M.height],['חזה',M.chest],['מותניים',M.waist],['ירכיים',M.hips],['כתפיים',M.shoulders],['אורך רגל',M.inseam]];
+  $('#mgrid').innerHTML=c.map(([l,v])=>`<div class="mc"><b>${v}</b><span>${l} · ס״מ</span></div>`).join('');
+  $('#sizes').innerHTML=`<div class="sz"><span>חולצות ועליוניות</span><b>${letter()}</b></div><div class="sz"><span>מכנסיים${S.gender==='f'?' וחצאיות':''}</span><b>${pantsLabel()}</b></div><div class="sz" style="grid-column:1/-1"><span>גזרה מומלצת לפי מבנה הגוף שזוהה</span><b style="font-size:20px">${fit()}</b></div>`;
+  $('#resLead').textContent=S.measured?'המצלמה מדדה את הפרופורציות שלך, והגובה כייל אותן לסנטימטרים:':'אלה המידות שהמערכת העריכה:';
+  $('#measPill').textContent=S.measured?'📐 נמדד מהמצלמה':'מצב הדגמה – הערכה לפי גובה';
+  $('#resNote').textContent=S.measured?'טלפון רגיל מודד פרופורציות ברמת דיוק סבירה. בעמדה האמיתית, מצלמות עומק מדייקות לטווח של 1–2 ס״מ.':'המצלמה לא הייתה זמינה, אז המידות חושבו לפי הגובה בלבד. כדי לראות מדידה אמיתית, פתח את הדמו מהכתובת ב־GitHub Pages.';
+}
+
+/* ================= LOOK ================= */
+function buildLook(){
+  const pool=catalog().filter(i=>i.g===S.gender),I=S.interests,any=!I.size,used=new Set();
+  const match=i=>any||i.tags.some(t=>I.has(t));
+  const sc_=i=>(match(i)?10:0)+(I.has('evening')&&i.tags.includes('evening')?4:0)+(S.mode==='mall'&&!used.has(i.st)?3:0)+rnd()*4;
+  const best=slot=>pool.filter(i=>i.slot===slot).sort((a,b)=>sc_(b)-sc_(a))[0];
+  const anchor=pool.filter(match).sort((a,b)=>sc_(b)-sc_(a))[0]||pool[0];
+  const L={[anchor.slot]:anchor};used.add(anchor.st);
+  const put=(k,it)=>{if(it){L[k]=it;used.add(it.st)}};
+  if(!L.dress){if(!L.top)put('top',best('top'));if(!L.bottom)put('bottom',best('bottom'))}
+  if(I.has('knit')&&!L.outer)put('outer',best('outer'));
+  if(I.has('acc')&&!L.acc)put('acc',best('acc'));
+  const comps=()=>Object.values(L).filter(i=>!match(i)).length;
+  if(comps()===0){if(!L.acc&&(I.has('evening')||rnd()<.5))put('acc',best('acc'));else if(!L.outer)put('outer',best('outer'))}
+  for(const k of['outer','acc'])if(comps()>2&&L[k]&&!match(L[k]))delete L[k];
+  const ac=Math.floor(rnd()*anchor.colors.length),aName=anchor.colors[ac][0];
+  S.look=Object.values(L).map(it=>{let ci=it===anchor?ac:it.colors.findIndex(c=>c[0]!==aName);if(ci<0)ci=0;return{item:it,ci,comp:!match(it)}});
+  if(S.snap&&S.view==='doll'&&!S._viewSet)S.view='me';
+  renderLook();
+}
+const isMatch=it=>S.interests.size===0||it.tags.some(t=>S.interests.has(t));
+function swap(idx){const e=S.look[idx],pool=catalog().filter(i=>i.g===S.gender&&i.slot===e.item.slot);const n=pool[(pool.indexOf(e.item)+1)%pool.length];S.look[idx]={item:n,ci:0,comp:!isMatch(n)};renderLook()}
+function addSlot(slot){const it=catalog().find(i=>i.g===S.gender&&i.slot===slot);S.look.push({item:it,ci:0,comp:!isMatch(it)});renderLook()}
+function fullSku(e){return`${e.item.sku}-${e.item.colors[e.ci][2]}-${sizeFor(e.item).code}`}
+const storeChip=it=>S.mode==='mall'?`<span class="store" style="background:${STORES[it.st].c}">${STORES[it.st].n}</span>`:'';
+function renderLook(){
+  const names=[...S.interests].map(k=>INT.find(x=>x[0]===k)[1]);
+  const stores=new Set(S.look.map(e=>e.item.st));
+  $('#lookFor').textContent=(names.length?'נבנה לפי: '+names.join(', '):'בחירת הסטייליסט שלנו')+' · מידה '+letter()+(S.mode==='mall'?` · מ־${stores.size} חנויות`:'');
+  $('#items').innerHTML=S.look.map((e,i)=>{const it=e.item,sz=sizeFor(it);return`<div class="item">
+    <div class="thumb"><svg viewBox="${THUMB[it.slot]}">${G(it.shape,it.colors[e.ci][1])}</svg></div>
+    <div class="info"><div class="nm">${it.name}${e.comp?'<span class="badge">פריט משלים</span>':''}</div>
+    <div class="meta">${storeChip(it)} מק״ט <bdi>${fullSku(e)}</bdi> · מידה <bdi>${sz.label}</bdi> · ${it.colors[e.ci][0]}</div>
+    <div class="dots">${it.colors.map((c,k)=>`<span class="dot ${k===e.ci?'on':''}" style="background:${c[1]}" title="${c[0]}" onclick="S.look[${i}].ci=${k};renderLook()"></span>`).join('')}</div></div>
+    <div class="pr"><b>₪${it.price}</b><button class="mini" onclick="swap(${i})">החלף</button>${(it.slot==='outer'||it.slot==='acc')?`<button class="mini" onclick="S.look.splice(${i},1);renderLook()">הסר</button>`:''}</div></div>`}).join('');
+  const has=s=>S.look.some(e=>e.item.slot===s);
+  $('#addbox').innerHTML=(!has('outer')?`<button class="mini" onclick="addSlot('outer')">+ הוסף שכבה עליונה</button>`:'')+(!has('acc')?`<button class="mini" onclick="addSlot('acc')">+ הוסף צעיף</button>`:'');
+  $('#total').textContent='₪'+S.look.reduce((a,e)=>a+e.item.price,0);
+  renderStage();
+}
+function renderStage(){
+  const v=S.view;$('#bMe').style.display=S.snap?'':'none';
+  ['bMe','bDoll','bUp'].forEach(id=>$('#'+id).classList.remove('on'));$({me:'#bMe',doll:'#bDoll',upload:'#bUp'}[v]).classList.add('on');
+  $('#bSpin').style.display=v==='doll'?'':'none';
+  $('#pcv').style.display=v==='me'?'block':'none';$('#photo').style.display=v==='upload'?'block':'none';
+  $('#figwrap').style.display=v==='me'?'none':'flex';$('#photoctl').style.display=v==='upload'?'flex':'none';
+  $('#fig').innerHTML=figure(S.look,v==='doll');
+  if(v!=='upload'){S.pt={x:0,y:0,s:1};applyPt()}
+  if(v==='me')renderMe();
+}
+let meTok=0;
+function renderMe(){
+  const sn=S.snap;if(!sn)return;const tok=++meTok;
+  const cv=$('#pcv');cv.width=sn.w;cv.height=sn.h;const x=cv.getContext('2d');x.drawImage(sn.canvas,0,0);
+  const P=i=>({x:sn.lm[i].x*sn.w,y:sn.lm[i].y*sn.h});
+  const sL=P(11),sR=P(12),aL=P(27),aR=P(28);
+  const sm={x:(sL.x+sR.x)/2,y:(sL.y+sR.y)/2},am={x:(aL.x+aR.x)/2,y:(aL.y+aR.y)/2};
+  const kx=Math.max(Math.abs(sL.x-sR.x)/76*1.1,.3),ky=Math.max((am.y-sm.y)/332,.3);
+  const W=200*kx,H=440*ky;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 440" width="${W}" height="${H}" preserveAspectRatio="none">${DEFS_G}${figure(S.look,false)}</svg>`;
+  const img=new Image();img.onload=()=>{if(tok!==meTok)return;x.globalAlpha=.96;x.drawImage(img,sm.x-100*kx,sm.y-92*ky,W,H);x.globalAlpha=1};
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+}
+$('#bSpin').onclick=()=>{const w=$('#figwrap');w.classList.remove('spin');void w.offsetWidth;w.classList.add('spin')};
+$('#bDoll').onclick=()=>{S.view='doll';S._viewSet=true;renderStage()};
+$('#bMe').onclick=()=>{S.view='me';S._viewSet=true;renderStage()};
+$('#bUp').onclick=()=>$('#pfile').click();
+$('#pfile').onchange=e=>{const f=e.target.files[0];if(!f)return;const img=$('#photo');if(img.src)URL.revokeObjectURL(img.src);img.src=URL.createObjectURL(f);S.view='upload';S._viewSet=true;renderStage();e.target.value=''};
+function applyPt(){$('#figwrap').style.transform=`translate(${S.pt.x}px,${S.pt.y}px) scale(${S.pt.s})`}
+$('#psize').oninput=e=>{S.pt.s=e.target.value/100;applyPt()};
+(function(){let d=null;const st=$('#stage');
+  st.addEventListener('pointerdown',e=>{if(S.view!=='upload')return;d={x:e.clientX-S.pt.x,y:e.clientY-S.pt.y};st.setPointerCapture(e.pointerId)});
+  st.addEventListener('pointermove',e=>{if(!d)return;S.pt.x=e.clientX-d.x;S.pt.y=e.clientY-d.y;applyPt()});
+  st.addEventListener('pointerup',()=>d=null);st.addEventListener('pointercancel',()=>d=null);})();
+
+/* ================= SUMMARY / MAP / SELLER ================= */
+const door=k=>{const s=STORES[k];return{x:s.x+50,y:s.top?72:158}};
+function routeOrder(){const ks=[...new Set(S.look.map(e=>e.item.st))];const out=[];let cur={x:335,y:115};while(ks.length){ks.sort((a,b)=>Math.abs(door(a).x-cur.x)-Math.abs(door(b).x-cur.x));const k=ks.shift();out.push(k);cur=door(k)}return out}
+function mapSVG(){
+  const order=routeOrder();let pts=[[335,115]];order.forEach(k=>{const d=door(k);pts.push([d.x,115],[d.x,d.y],[d.x,115])});
+  const boxes=Object.entries(STORES).map(([k,s])=>{const on=order.includes(k),y=s.top?10:158,n=order.indexOf(k)+1;return`<rect x="${s.x}" y="${y}" width="100" height="62" rx="8" fill="${on?s.c:'#20242f'}" opacity="${on?.95:1}" stroke="#2f3442"/><text x="${s.x+50}" y="${y+36}" text-anchor="middle" fill="${on?'#fff':'#7c8394'}" font-size="12" font-weight="${on?700:400}">${s.n}</text>${on?`<circle cx="${door(k).x}" cy="${door(k).y}" r="9" fill="#d4b37a"/><text x="${door(k).x}" y="${door(k).y+4}" text-anchor="middle" font-size="11" font-weight="800" fill="#1b160c">${n}</text>`:''}`}).join('');
+  return`<svg viewBox="0 0 360 230" direction="ltr"><rect x="10" y="80" width="340" height="70" rx="10" fill="#12151c"/><text x="18" y="96" font-size="10" fill="#5d6475">קומה 1 · מעבר ראשי</text><polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="#d4b37a" stroke-width="2.5" stroke-dasharray="6 5" class="route" stroke-linejoin="round"/>${boxes}<circle cx="335" cy="115" r="8" fill="#3ddc84"/><text x="335" y="140" text-anchor="middle" font-size="10" fill="#3ddc84">אתה כאן</text></svg>`;
+}
+function toSummary(){
+  if(!S.code)S.code='LK-'+(1000+Math.floor(rnd()*9000));
+  const mall=S.mode==='mall';
+  $('#code').textContent=S.code;
+  $('#sumLead').textContent=mall?'הנה המסלול שלך בקניון. כל חנות כבר יודעת מה להכין לך.':'הראה את הקוד למוכר, או שלח אותו לטלפון.';
+  $('#qrNote').textContent=mall?'סרוק בטלפון כדי לקחת את המסלול איתך':'המוכר סורק – וכל הפריטים מופיעים אצלו';
+  $('#consentTxt').textContent=mall?'רק מספרים, בלי תמונות. יעבוד בכל החנויות בקניון. אפשר למחוק בכל רגע.':'רק מספרים, בלי תמונות. יעבוד בכל חנויות הרשת. אפשר למחוק בכל רגע.';
+  $('#sellerBtn').textContent=mall?'הצג את מסך החנויות':'הצג למוכר';
+  const q=$('#qr');q.innerHTML='';q.style.display='';
+  try{new QRCode(q,{text:S.code+' | '+S.look.map(fullSku).join(', '),width:150,height:150,colorDark:'#0c0e13',colorLight:'#ffffff'})}catch(e){q.style.display='none'}
+  $('#mapBox').innerHTML=mall?`<div class="map">${mapSVG()}</div>`:'';
+  const row=e=>`<div class="sl"><div>${e.item.name}<br><span><bdi>${fullSku(e)}</bdi> · ${sizeFor(e.item).label}</span></div><div>₪${e.item.price}</div></div>`;
+  let html='';
+  if(mall){routeOrder().forEach((k,i)=>{html+=`<div class="grp"><span class="store" style="background:${STORES[k].c}">${i+1}</span>${STORES[k].n}</div>`+S.look.filter(e=>e.item.st===k).map(row).join('')})}
+  else html=S.look.map(row).join('');
+  html+=`<div class="sl" style="border:0;font-weight:700"><div>סה״כ</div><div>₪${S.look.reduce((a,e)=>a+e.item.price,0)}</div></div>`;
+  $('#slist').innerHTML=html;$('#smsmsg').textContent='';go('summary');
+}
+function sendSms(){const p=$('#phone').value.replace(/\D/g,'');const ok=p.length>=9;$('#smsmsg').style.color=ok?'var(--ok)':'var(--bad)';$('#smsmsg').textContent=ok?'בגרסה המלאה הלוק יישלח ב־SMS למספר הזה. (בדמו לא נשלחת הודעה.)':'נראה שהמספר לא שלם'}
+let sellStore=null;
+function toSeller(){const ks=routeOrder();sellStore=ks[0];renderSeller();go('seller')}
+function renderSeller(){
+  const mall=S.mode==='mall',saved=$('#consent').classList.contains('on');
+  $('#sellTitle').textContent=mall?'מסך החנות':'מסך מוכר';
+  $('#sellLead').textContent=mall?'כל חנות מקבלת רק את הפריטים שלה מהלוק – ומכינה אותם בתא לפני שהלקוח מגיע.':'כך נראה הלוק אצל המוכר אחרי סריקת הקוד.';
+  $('#stabs').innerHTML=mall?routeOrder().map(k=>`<button class="${k===sellStore?'on':''}" onclick="sellStore='${k}';renderSeller()">${STORES[k].n}</button>`).join(''):'';
+  const items=mall?S.look.filter(e=>e.item.st===sellStore):S.look;
+  $('#pos').innerHTML=`<div class="poshead"><div><div style="font-size:12px;color:#888">${mall?STORES[sellStore].n+' · לוק נכנס':'לוק נסרק'}</div><div class="code">${S.code}</div></div><span class="ptag">${S.gender==='m'?'גברים':'נשים'} · ${items.length} פריטים</span></div>
+  <div class="custsz"><span>עליון: ${letter()}</span><span>מכנס: ${pantsLabel()}</span><span>${fit()}</span><span>${saved?'✓ פרופיל נשמר':'לקוח אנונימי'}</span></div>
+  <div style="margin-top:8px">${items.map(e=>{const h=hash(fullSku(e)),stock=h%6+1,shelf='ABCDEF'[h%6]+(h%8+1);return`<div class="prow"><div class="thumb"><svg viewBox="${THUMB[e.item.slot]}">${G(e.item.shape,e.item.colors[e.ci][1])}</svg></div>
+  <div><b>${e.item.name}</b><small><bdi>${fullSku(e)}</bdi> · ${e.item.colors[e.ci][0]} · ${sizeFor(e.item).label}</small><small>מדף ${shelf} · ₪${e.item.price}</small></div>
+  <div><div class="stock">במלאי ${stock}</div><div class="chk" onclick="this.classList.toggle('on');this.textContent=this.classList.contains('on')?'✓':''"></div></div></div>`}).join('')}</div>`;
+  const fb=$('#fitBtn');fb.disabled=false;fb.textContent=mall?'שריין תא מדידה בחנות':'הכן בתא מדידה';
+  fb.onclick=()=>{fb.textContent='✓ התא שוריין – הפריטים מחכים';fb.disabled=true};
+}
+function finishAll(){
+  const saved=$('#consent').classList.contains('on');
+  $('#doneMsg').textContent=saved?'המידות נשמרו כמספרים בלבד – בפעם הבאה אפשר לדלג על הסריקה. כל השאר נמחק.':'כל הנתונים נמחקו מהעמדה, כולל התמונה מהסריקה.';
+  S.snap=null;go('done');
+}
+function resetAll(){S.interests.clear();S.look=[];S.code='';S.meas=null;S.snap=null;S.view='doll';S._viewSet=false;$('#consent').classList.remove('on');$('#phone').value='';renderChips();go('welcome')}
+</script>
+</body>
+</html>
